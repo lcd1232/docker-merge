@@ -208,13 +208,16 @@ func processImage(a types.ImageReference, git, dir string) error {
 	if _, _, err := util.RunCommand(branchCmd, nil); err != nil {
 		return errors.Wrap(err, "creating branch")
 	}
-	baseImg, err := a.NewImage(&types.SystemContext{})
+	systemContext := &types.SystemContext{
+		DockerDaemonHost: os.Getenv("DOCKER_HOST"),
+	}
+	baseImg, err := a.NewImage(systemContext)
 	if err != nil {
 		return err
 	}
 	defer baseImg.Close()
 
-	baseImgSrc, err := a.NewImageSource(&types.SystemContext{})
+	baseImgSrc, err := a.NewImageSource(systemContext)
 	if err != nil {
 		return err
 	}

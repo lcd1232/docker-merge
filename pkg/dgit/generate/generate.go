@@ -1,24 +1,20 @@
 package generate
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/google/go-containerregistry/authn"
-	"github.com/google/go-containerregistry/name"
-	"github.com/google/go-containerregistry/v1"
-	"github.com/google/go-containerregistry/v1/random"
-	"github.com/google/go-containerregistry/v1/remote"
-	"github.com/google/go-containerregistry/v1/remote/transport"
-	"github.com/google/go-containerregistry/v1/types"
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/random"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/google/go-github/github"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
@@ -81,7 +77,11 @@ func GenerateManifest(owner, repo, ref string) error {
 		return err
 	}
 
-	remote.Write(dstRef, img, auth, http.DefaultTransport, remote.WriteOptions{})
+	if err := remote.Write(dstRef, img,
+		remote.WithAuth(auth),
+	); err != nil {
+		return err
+	}
 
 	spew.Dump(img)
 
@@ -110,42 +110,44 @@ func GetHash(url string) (*v1.Hash, int64, error) {
 }
 
 func addTag(img v1.Image, targetRef name.Reference, auth authn.Authenticator, t http.RoundTripper) error {
-	tr, err := transport.New(targetRef, auth, t, transport.PushScope)
-	if err != nil {
-		return err
-	}
-
-	data, err := img.RawManifest()
-	if err != nil {
-		return errors.Wrap(err, "getting raw manifest")
-	}
-
-	c := &http.Client{Transport: tr}
-	u := url.URL{
-		Scheme: transport.Scheme(targetRef.Context().Registry),
-		Host:   targetRef.Context().RegistryStr(),
-		Path:   fmt.Sprintf("/v2/%s/manifests/%s", targetRef.Context().RepositoryStr(), targetRef.Identifier()),
-	}
-
-	req, err := http.NewRequest(http.MethodPut, u.String(), bytes.NewReader(data))
-	if err != nil {
-		return errors.Wrap(err, "generating http request")
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	switch resp.StatusCode {
-	case http.StatusOK, http.StatusAccepted:
-		return nil
-	default:
-		b, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-		return fmt.Errorf("unrecognized status code during PUT: %v; %v", resp.Status, string(b))
-	}
+	panic("fix me")
+	// TODO: fix it
+	//tr, err := transport.New(targetRef, auth, t, transport.PushScope)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//data, err := img.RawManifest()
+	//if err != nil {
+	//	return errors.Wrap(err, "getting raw manifest")
+	//}
+	//
+	//c := &http.Client{Transport: tr}
+	//u := url.URL{
+	//	Scheme: transport.Scheme(targetRef.Context().Registry),
+	//	Host:   targetRef.Context().RegistryStr(),
+	//	Path:   fmt.Sprintf("/v2/%s/manifests/%s", targetRef.Context().RepositoryStr(), targetRef.Identifier()),
+	//}
+	//
+	//req, err := http.NewRequest(http.MethodPut, u.String(), bytes.NewReader(data))
+	//if err != nil {
+	//	return errors.Wrap(err, "generating http request")
+	//}
+	//
+	//resp, err := c.Do(req)
+	//if err != nil {
+	//	return err
+	//}
+	//defer resp.Body.Close()
+	//
+	//switch resp.StatusCode {
+	//case http.StatusOK, http.StatusAccepted:
+	//	return nil
+	//default:
+	//	b, err := io.ReadAll(resp.Body)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	return fmt.Errorf("unrecognized status code during PUT: %v; %v", resp.Status, string(b))
+	//}
 }

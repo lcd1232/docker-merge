@@ -3,15 +3,15 @@ package merge
 import (
 	"context"
 	"fmt"
+	"github.com/containers/image/v5/pkg/blobinfocache/none"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 
-	"github.com/containers/image/docker/daemon"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/docker/daemon"
+	"github.com/containers/image/v5/types"
 	"github.com/docker/docker/client"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
@@ -43,7 +43,7 @@ func New(tag string, refs []string) (*merger, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "refs")
 	}
-	tempDir, err := ioutil.TempDir("", "")
+	tempDir, err := os.MkdirTemp("", "")
 	if err != nil {
 		return nil, errors.Wrap(err, "create temp dir")
 	}
@@ -56,7 +56,7 @@ func New(tag string, refs []string) (*merger, error) {
 		return nil, errors.Wrap(err, "mkdir")
 	}
 
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return nil, errors.Wrap(err, "docker client")
 	}
@@ -211,19 +211,19 @@ func processImage(a types.ImageReference, git, dir string) error {
 	systemContext := &types.SystemContext{
 		DockerDaemonHost: os.Getenv("DOCKER_HOST"),
 	}
-	baseImg, err := a.NewImage(systemContext)
+	baseImg, err := a.NewImage(context.TODO(), systemContext)
 	if err != nil {
 		return err
 	}
 	defer baseImg.Close()
 
-	baseImgSrc, err := a.NewImageSource(systemContext)
+	baseImgSrc, err := a.NewImageSource(context.TODO(), systemContext)
 	if err != nil {
 		return err
 	}
 
 	for _, li := range baseImg.LayerInfos() {
-		b, _, err := baseImgSrc.GetBlob(li)
+		b, _, err := baseImgSrc.GetBlob(context.TODO(), li, none.NoCache)
 		if err != nil {
 			return errors.Wrap(err, "getting blob")
 		}

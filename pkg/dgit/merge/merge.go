@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"github.com/containers/image/v5/pkg/blobinfocache/none"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"io"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/containers/image/v5/docker/daemon"
 	"github.com/containers/image/v5/types"
@@ -166,6 +168,7 @@ func (m *merger) createImage() error {
 		return errors.Wrap(err, "getting cfg")
 	}
 	newConfig.Architecture = "amd64"
+	newConfig.Created = v1.Time{Time: time.Now()}
 	img, err = mutate.Config(img, newConfig.Config)
 	if err != nil {
 		return errors.Wrap(err, "mutate config")
